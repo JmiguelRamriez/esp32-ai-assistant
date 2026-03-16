@@ -1,0 +1,23 @@
+# Archivos específicos de Python y MicroPython
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+.pyenv/
+
+# Archivos de configuración y secretos (MUY IMPORTANTE)
+# Aquí solemos guardar el SSID y PASSWORD del Wi-Fi
+config.py
+secrets.py
+.env
+
+# Archivos de herramientas y editores (Thonny, VS Code, etc.)
+.vscode/
+.idea/
+.project
+.pydevproject
+.thonny/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
