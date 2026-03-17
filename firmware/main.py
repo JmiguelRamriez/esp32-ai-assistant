@@ -1,6 +1,10 @@
 import pantalla
+import wifi
 import random
+import time 
 
+time.sleep(2)
+wifi.conectar()
 pantalla.iniciar()
 
 ESTADOS = [

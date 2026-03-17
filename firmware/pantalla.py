@@ -289,23 +289,6 @@ def cara_hablando(frames=70):
         display.show()
         time.sleep_ms(70)
 
-# ─── Secuencia no lineal ─────────────────────────────────────
-
-ESTADOS = [
-    (0, cara_reposo,     P_REPOSO,     "Reposo"),
-    (1, cara_escuchando, P_ESCUCHANDO, "Escuchando"),
-    (2, cara_pensando,   P_PENSANDO,   "Pensando"),
-    (3, cara_hablando,   P_HABLANDO,   "Hablando"),
-]
-
-TRANSICIONES = {
-    0: [1],
-    1: [2, 2, 3],
-    2: [3, 3, 1],
-    3: [0, 0, 2],
-}
-
-idx = 0
 
 def iniciar():
     display.fill(0)
