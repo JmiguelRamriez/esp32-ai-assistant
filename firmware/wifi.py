@@ -1,16 +1,28 @@
-import config # credenciales wifi
-import network # Librería nativa de MicroPython para controlar la antena de red del chip
-import time # Libreria para manjar tiempos
+import config
+import network
+import time
 
 def conectar():
-    #Creamos el objeto 'wlan' y lo configuramos en modo "Estación" (STA_IF)
-    # Esto significa que el ESP32 actuará como un cliente conectándose a tu módem
-    wlan = network.WLAN(network.STA_IF) 
-    wlan.active(True) # Encendemos el hardware de la antena Wi-Fi
-    wlan.connect(config.SSID, config.PASSWORD)# Le damos la orden de conectarse usando las variables de tu archivo config
+    wlan = network.WLAN(network.STA_IF)
     
-    # Revisa constantamente hasta que se conecte
-    while not wlan.isconnected():
+    # El truco para limpiar el estado corrupto: apagar, encender y desconectar a la fuerza
+    wlan.active(False)
+    time.sleep(0.5)
+    wlan.active(True)
+    wlan.disconnect()
+    time.sleep(0.5)
+    
+    print("Intentando conectar a:", config.SSID)
+    wlan.connect(config.SSID, config.PASSWORD)
+    
+    # Agregamos un límite de intentos para que no se quede en un bucle infinito
+    intentos = 0
+    while not wlan.isconnected() and intentos < 20:
         print("Conectando...")
-        time.sleep_ms(300)
-    print("Conectado:", wlan.ifconfig()[0])
+        time.sleep(0.5)
+        intentos += 1
+        
+    if wlan.isconnected():
+        print("¡Conectado exitosamente! IP:", wlan.ifconfig()[0])
+    else:
+        print("Falló la conexión. Revisa que el nombre y contraseña de tu red de casa sean correctos.")
