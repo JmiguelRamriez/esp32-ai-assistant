@@ -3,7 +3,7 @@ import ujson
 import config
 import time
 
-def preguntas(mnsj):
+def P(mnsj):
     url = "https://api.groq.com/openai/v1/chat/completions"
     # IMPORTANTE: Groq necesita estos headers
     headers = {
@@ -16,7 +16,7 @@ def preguntas(mnsj):
         "messages": [
             {"role": "user", "content": mnsj}
         ],
-        "max_tokens": 200
+        "max_tokens": 100
     }
 
     try:
