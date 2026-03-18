@@ -1,10 +1,14 @@
 from flask import Flask, request, jsonify
 import requests
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
-API_KEY = "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"
+API_KEY = os.environ.get("GROQ_API_KEY")
 
 @app.route('/transcribir', methods=['POST'])
 def transcribir():
