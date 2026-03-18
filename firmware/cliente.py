@@ -50,22 +50,36 @@ def escuchar_y_preguntar():
         print("Respuesta:", respuesta_ia)
     except Exception as e:
         print("Error en preguntar:", e)
+    return respuesta_ia
 
 def preguntar(texto):
-    import ujson
+    import gc
     gc.collect()
     
-    # Limpiamos el salto de línea que rompe el JSON
-    texto_limpio = texto.strip()
+    # 1. Diccionario de reemplazos (El "filtro" limpiador)
+    reemplazos = {
+        'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+        'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
+        'ñ': 'n', 'Ñ': 'N',
+        '¿': '', '?': '', '¡': '', '!': '',
+        ',': '', '.': '', ':': '', ';': '',
+        '"': '', "'": '', '\n': ' ', '\r': ''
+    }
+    
+    # 2. Limpiamos el texto letra por letra
+    texto_limpio = texto
+    for original, nuevo in reemplazos.items():
+        texto_limpio = texto_limpio.replace(original, nuevo)
+        
+    texto_limpio = texto_limpio.strip() # Quitamos espacios en blanco a los lados
     print("Texto limpio a enviar:", repr(texto_limpio))
 
+    # 3. Continuamos con tu código original de conexión
     addr = (config.SERVIDOR, config.PUERTO)
     sock = usocket.socket()
     sock.connect(addr)
     
-    # Empaquetamos todo de forma segura
-    payload = {"texto": texto_limpio}
-    cuerpo = ujson.dumps(payload).encode('utf-8')
+    cuerpo = ('{"texto":"' + texto_limpio + '"}').encode('utf-8')
     
     header = (
         "POST /preguntar HTTP/1.1\r\n"
@@ -81,10 +95,12 @@ def preguntar(texto):
     
     print("RAW:", respuesta)
     
+    # Extraer la respuesta
     try:
         cuerpo_resp = respuesta.split("\r\n\r\n", 1)[1]
+        import ujson
         datos = ujson.loads(cuerpo_resp)
         return datos['choices'][0]['message']['content']
     except Exception as e:
-        print("Error extrayendo la respuesta del servidor:", e)
+        print("Error en preguntar:", e)
         return None

@@ -1,35 +1,38 @@
 import pantalla
 import wifi
-import random
-import time 
+import cliente
+import time
+import gc
+from machine import Pin
 
 time.sleep(2)
 wifi.conectar()
 pantalla.iniciar()
 
-ESTADOS = [
-    (0, pantalla.cara_reposo,     pantalla.P_REPOSO,     "Reposo"),
-    (1, pantalla.cara_escuchando, pantalla.P_ESCUCHANDO, "Escuchando"),
-    (2, pantalla.cara_pensando,   pantalla.P_PENSANDO,   "Pensando"),
-    (3, pantalla.cara_hablando,   pantalla.P_HABLANDO,   "Hablando"),
-]
+boton = Pin(14, Pin.IN, Pin.PULL_UP)
 
-TRANSICIONES = {
-    0: [1],
-    1: [2, 2, 3],
-    2: [3, 3, 1],
-    3: [0, 0, 2],
-}
-
-idx = 0
 while True:
-    _, cara_fn, params, nombre = ESTADOS[idx]
-    print("Estado:", nombre)
-    cara_fn()
-
-    opciones = TRANSICIONES[idx]
-    idx_next = opciones[random.randint(0, len(opciones)-1)]
-    _, _, params_next, _ = ESTADOS[idx_next]
-
-    pantalla.morph(params, params_next)
-    idx = idx_next
+    # Mostrar cara reposo mientras espera
+    pantalla.cara_reposo(frames=10)
+    
+    # Esperar que se presione el botón
+    if boton.value() == 0:  # 0 = presionado (PULL_UP)
+        print("Botón presionado, escuchando...")
+        
+        # Cara escuchando mientras graba
+        pantalla.morph(pantalla.P_REPOSO, pantalla.P_ESCUCHANDO)
+        
+        # Grabar y obtener respuesta
+        gc.collect()
+        respuesta = cliente.escuchar_y_preguntar()
+        
+        # Cara pensando mientras procesa
+        pantalla.morph(pantalla.P_ESCUCHANDO, pantalla.P_PENSANDO)
+        pantalla.cara_pensando(frames=10)
+        
+        # Cara hablando con la respuesta
+        pantalla.morph(pantalla.P_PENSANDO, pantalla.P_HABLANDO)
+        pantalla.cara_hablando(frames=50)
+        
+        # Volver a reposo
+        pantalla.morph(pantalla.P_HABLANDO, pantalla.P_REPOSO)
