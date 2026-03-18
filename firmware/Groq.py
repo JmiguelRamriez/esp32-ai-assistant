@@ -16,7 +16,7 @@ def P(mnsj):
         "messages": [
             {"role": "user", "content": mnsj}
         ],
-        "max_tokens": 100
+        "max_tokens": 200
     }
 
     try:

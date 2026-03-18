@@ -4,18 +4,16 @@ import grabar
 import ujson
 import os
 import gc
-import pantalla # <-- 1. Agrega esta importación al inicio
+import pantalla 
 
-def escuchar_y_preguntar():
-    grabar.grabar()
+def escuchar_y_preguntar(boton): 
+    grabar.grabar(boton) 
     gc.collect()
     
-    # <-- 2. Justo aquí cambiamos la cara mientras se comunica con el servidor
     pantalla.mostrar_pensando() 
     
     tam = os.stat("audio.wav")[6]
     addr = (config.SERVIDOR, config.PUERTO)
-    # ... resto de tu código sin cambios ...
     sock = usocket.socket()
     sock.connect(addr)
     
@@ -46,22 +44,25 @@ def escuchar_y_preguntar():
         print("Escuché:", texto)
     except Exception as e:
         print("Error al parsear:", e)
-        print("Respuesta raw:", respuesta)
-        return
+        # --- ESTO ES LO NUEVO: Nos mostrará qué dijo el servidor ---
+        print("\n--- LO QUE RESPONDIÓ EL SERVIDOR FLASK ---")
+        print(respuesta)
+        print("------------------------------------------\n")
+        return None
     
     print("Memoria libre:", gc.mem_free())
     try:
         respuesta_ia = preguntar(texto)
-        print("Respuesta:", respuesta_ia)
     except Exception as e:
         print("Error en preguntar:", e)
+        return None
+        
     return respuesta_ia
 
 def preguntar(texto):
     import gc
     gc.collect()
     
-    # 1. Diccionario de reemplazos (El "filtro" limpiador)
     reemplazos = {
         'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
         'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
@@ -71,15 +72,13 @@ def preguntar(texto):
         '"': '', "'": '', '\n': ' ', '\r': ''
     }
     
-    # 2. Limpiamos el texto letra por letra
     texto_limpio = texto
     for original, nuevo in reemplazos.items():
         texto_limpio = texto_limpio.replace(original, nuevo)
         
-    texto_limpio = texto_limpio.strip() # Quitamos espacios en blanco a los lados
+    texto_limpio = texto_limpio.strip()
     print("Texto limpio a enviar:", repr(texto_limpio))
 
-    # 3. Continuamos con tu código original de conexión
     addr = (config.SERVIDOR, config.PUERTO)
     sock = usocket.socket()
     sock.connect(addr)
@@ -98,9 +97,6 @@ def preguntar(texto):
     respuesta = sock.read(2048).decode()
     sock.close()
     
-    print("RAW:", respuesta)
-    
-    # Extraer la respuesta
     try:
         cuerpo_resp = respuesta.split("\r\n\r\n", 1)[1]
         import ujson

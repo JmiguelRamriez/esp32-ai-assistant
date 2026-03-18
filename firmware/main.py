@@ -16,40 +16,33 @@ pantalla.mostrar_reposo()
 print("Estado: Reposo")
 
 while True:
-    # Si detecta que presionaste el botón (Pin a Tierra/GND)
     if boton.value() == 0:
-        time.sleep(0.1) # Pequeña pausa antirrebote
+        time.sleep(0.1) # Antirrebote
         
-        # Confirma que el botón sigue presionado (no fue ruido eléctrico)
         if boton.value() == 0:
             print("\n--- INICIANDO INTERACCIÓN ---")
             pantalla.mostrar_escuchando()
-            print("Estado: Escuchando (Habla ahora...)")
+            print("Estado: Escuchando (Habla ahora y mantén presionado el botón...)")
             
-            # Graba el audio y se lo manda al servidor
             gc.collect()
             try:
-                respuesta = cliente.escuchar_y_preguntar()
+                # ¡Aquí le pasamos el botón a la función!
+                respuesta = cliente.escuchar_y_preguntar(boton)
                 
-                # Si la IA contestó algo válido
                 if respuesta:
                     pantalla.mostrar_hablando()
                     print("IA:", respuesta)
-                    time.sleep(5) # Deja la cara de hablando 5 segundos para que la veas
+                    time.sleep(5) 
                 else:
                     print("La IA no devolvió ninguna respuesta.")
                     
             except Exception as e:
-                print("Error durante la grabación/comunicación:", e)
+                print("Error durante la comunicación:", e)
             
-            # Vuelve a poner la cara de reposo
             pantalla.mostrar_reposo()
             print("Estado: Reposo")
             
-            # ESTA ES LA CLAVE: El código se queda "atrapado" aquí 
-            # hasta que físicamente sueltes el botón. Así evitamos el bucle.
-            while boton.value() == 0:
-                time.sleep(0.1)
+            # Ya no necesitamos el 'while boton.value() == 0' aquí abajo 
+            # porque la función grabar() de grabar.py ya hace esa pausa por nosotros.
                 
-    # Pequeña pausa para no saturar el procesador
     time.sleep(0.1)
