@@ -4,13 +4,18 @@ import grabar
 import ujson
 import os
 import gc
+import pantalla # <-- 1. Agrega esta importación al inicio
 
 def escuchar_y_preguntar():
     grabar.grabar()
     gc.collect()
     
+    # <-- 2. Justo aquí cambiamos la cara mientras se comunica con el servidor
+    pantalla.mostrar_pensando() 
+    
     tam = os.stat("audio.wav")[6]
     addr = (config.SERVIDOR, config.PUERTO)
+    # ... resto de tu código sin cambios ...
     sock = usocket.socket()
     sock.connect(addr)
     
