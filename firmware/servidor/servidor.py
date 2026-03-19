@@ -1,8 +1,11 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import requests
 import json
 import os
+import io
 from dotenv import load_dotenv
+from gtts import gTTS
+from pydub import AudioSegment
 
 load_dotenv()
 
@@ -64,14 +67,11 @@ def preguntar():
         print("Error parseando:", e)
         return jsonify({"error": str(e)}), 400
     
-    # 1. Agregar mensaje del usuario
     historial.append({"role": "user", "content": texto})
     
-    # 2. Recortar si es muy largo
     if len(historial) > MAX_TURNOS * 2:
         historial = historial[-(MAX_TURNOS * 2):]
     
-    # 3. Construir mensajes y llamar a Groq
     mensajes = [{"role": "system", "content": SYSTEM_PROMPT}] + historial
     
     respuesta = requests.post(
@@ -86,7 +86,6 @@ def preguntar():
     
     datos_respuesta = respuesta.json()
     
-    # 4. Agregar respuesta de la IA y guardar todo de una vez
     try:
         contenido_ia = datos_respuesta['choices'][0]['message']['content']
         historial.append({"role": "assistant", "content": contenido_ia})
@@ -97,6 +96,32 @@ def preguntar():
         print("No se pudo guardar en historial:", e)
     
     return jsonify(datos_respuesta)
+
+@app.route('/hablar', methods=['POST'])
+def hablar():
+    try:
+        datos = request.get_json(force=True)
+        texto = datos.get('texto', '')
+        print(f"TTS: {texto}")
+
+        # Generar MP3 con gTTS
+        tts = gTTS(text=texto, lang='es')
+        mp3_buffer = io.BytesIO()
+        tts.write_to_fp(mp3_buffer)
+        mp3_buffer.seek(0)
+
+        # Convertir a WAV 8-bit, 8kHz, mono (compatible con DAC del ESP32)
+        audio = AudioSegment.from_mp3(mp3_buffer)
+        audio = audio.set_frame_rate(8000).set_channels(1).set_sample_width(1)
+
+        wav_buffer = io.BytesIO()
+        audio.export(wav_buffer, format="wav")
+        wav_buffer.seek(0)
+
+        return send_file(wav_buffer, mimetype='audio/wav')
+    except Exception as e:
+        print("Error en TTS:", e)
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/reset', methods=['POST'])
 def reset():
