@@ -1,8 +1,11 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import requests
 import json
 import os
+import io
 from dotenv import load_dotenv
+from gtts import gTTS
+from pydub import AudioSegment
 
 load_dotenv()
 
@@ -86,7 +89,7 @@ def preguntar():
     
     datos_respuesta = respuesta.json()
     
-    # 4. Agregar respuesta de la IA y guardar todo de una vez
+    # 4. Agregar respuesta de la IA y guardar
     try:
         contenido_ia = datos_respuesta['choices'][0]['message']['content']
         historial.append({"role": "assistant", "content": contenido_ia})
@@ -97,6 +100,41 @@ def preguntar():
         print("No se pudo guardar en historial:", e)
     
     return jsonify(datos_respuesta)
+
+@app.route('/hablar', methods=['POST'])
+def hablar():
+    try:
+        # 1. Obtener el texto que envió el ESP32
+        datos = request.get_json(force=True, silent=True)
+        if datos is None:
+            raw = request.data.decode('utf-8')
+            datos = json.loads(raw)
+            
+        texto = datos.get('texto', 'Error al recibir el texto')
+        print(f"Generando audio para: {texto}")
+        
+        # 2. Generar voz con gTTS (Acento mexicano)
+        tts = gTTS(text=texto, lang='es', tld='com.mx')
+        mp3_fp = io.BytesIO()
+        tts.write_to_fp(mp3_fp)
+        mp3_fp.seek(0)
+        
+        # 3. Convertir con pydub a WAV (8kHz, Mono, 8-bits unsigned)
+        audio = AudioSegment.from_file(mp3_fp, format="mp3")
+        # 8000 Hz, 1 canal (Mono), 1 byte (8 bits)
+        audio = audio.set_frame_rate(8000).set_channels(1).set_sample_width(1) 
+        
+        wav_fp = io.BytesIO()
+        # pcm_u8 es VITAL: El DAC del ESP32 solo lee valores positivos (0-255)
+        audio.export(wav_fp, format="wav", codec="pcm_u8")
+        wav_fp.seek(0)
+        
+        # 4. Enviar el archivo WAV de vuelta al ESP32
+        return send_file(wav_fp, mimetype="audio/wav")
+        
+    except Exception as e:
+        print("Error en ruta /hablar:", e)
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/reset', methods=['POST'])
 def reset():
