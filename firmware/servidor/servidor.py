@@ -1,135 +1,129 @@
-from flask import Flask, request, jsonify, send_file
-import requests
-import json
+import usocket
+import urequests
+import config
+import grabar
+import ujson
 import os
-import io
-from dotenv import load_dotenv
-from gtts import gTTS
-from pydub import AudioSegment
+import gc
+import pantalla
 
-load_dotenv()
+def escuchar_y_preguntar(boton):
+    grabar.grabar(boton)
+    gc.collect()
 
-app = Flask(__name__)
-API_KEY = os.environ.get("GROQ_API_KEY")
+    pantalla.mostrar_pensando()
+    print("Memoria libre:", gc.mem_free())
 
-HISTORIAL_FILE = "historial.json"
-
-def cargar_historial():
-    if os.path.exists(HISTORIAL_FILE):
-        with open(HISTORIAL_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return []
-
-def guardar_historial(h):
-    with open(HISTORIAL_FILE, 'w', encoding='utf-8') as f:
-        json.dump(h, f, ensure_ascii=False, indent=2)
-
-historial = cargar_historial()
-
-SYSTEM_PROMPT = """Eres un asistente de voz inteligente 
-Mi nombre es Miguel y tengo 20 años, cumplo el 21 de octubre, me gusta el anime y los videojuegos,
-estudio robotica en cuarto semestre del tecnologico de Monterrey, te pedire ayuda
-con cosas muy cotidianas o preguntas sobre mi carrera.
-Respondes de forma concisa y clara, puedes hablar perfectamente varios idiomas. 
-Tus respuestas no deben superar 3-5 oraciones. 
-Tienes una personalidad amigable, un poco juguetona pero muy inteligente"""
-
-MAX_TURNOS = 10
-
-@app.route('/transcribir', methods=['POST'])
-def transcribir():
-    audio = request.data
-    with open('temp.wav', 'wb') as f:
-        f.write(audio)
-    
-    with open('temp.wav', 'rb') as f:
-        respuesta = requests.post(
-            "https://api.groq.com/openai/v1/audio/transcriptions",
-            headers={"Authorization": "Bearer " + API_KEY},
-            files={"file": ("audio.wav", f, "audio/wav")},
-            data={"model": "whisper-large-v3-turbo"}
-        )
-    
-    return jsonify(respuesta.json())
-
-@app.route('/preguntar', methods=['POST'])
-def preguntar():
-    global historial
-    
+    # --- ENVÍO DE AUDIO POR SOCKETS (A prueba de fallos de RAM) ---
     try:
-        datos = request.get_json(force=True, silent=True)
-        if datos is None:
-            raw = request.data.decode('utf-8')
-            datos = json.loads(raw)
-        texto = datos.get('texto', '')
-        print(f"Usuario: {texto}")
+        tam = os.stat("audio.wav")[6]
+        addr = (config.SERVIDOR, config.PUERTO)
+        
+        sock = usocket.socket()
+        sock.settimeout(20.0) # Le damos 20 segundos de paciencia
+        sock.connect(addr)
+        
+        request = (
+            "POST /transcribir HTTP/1.1\r\n"
+            "Host: " + config.SERVIDOR + ":" + str(config.PUERTO) + "\r\n"
+            "Content-Type: audio/wav\r\n"
+            "Content-Length: " + str(tam) + "\r\n\r\n"
+        ).encode()
+        
+        sock.write(request)
+        
+        # Leemos y enviamos el audio en pedacitos pequeños de 512 bytes
+        with open("audio.wav", "rb") as f:
+            buf = bytearray(512)
+            while True:
+                n = f.readinto(buf)
+                if n == 0:
+                    break
+                sock.write(buf[:n])
+        
+        respuesta = sock.read(2048).decode()
+        sock.close()
+        gc.collect()
+        
+        # Cortamos la cabecera HTTP para quedarnos solo con el JSON
+        cuerpo = respuesta.split("\r\n\r\n", 1)[1]
+        datos = ujson.loads(cuerpo)
+        texto = datos['text']
+        print("Escuché:", texto)
+        
     except Exception as e:
-        print("Error parseando:", e)
-        return jsonify({"error": str(e)}), 400
-    
-    historial.append({"role": "user", "content": texto})
-    
-    if len(historial) > MAX_TURNOS * 2:
-        historial = historial[-(MAX_TURNOS * 2):]
-    
-    mensajes = [{"role": "system", "content": SYSTEM_PROMPT}] + historial
-    
-    respuesta = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers={"Authorization": "Bearer " + API_KEY},
-        json={
-            "model": "llama-3.1-8b-instant",
-            "messages": mensajes,
-            "max_tokens": 200
-        }
-    )
-    
-    datos_respuesta = respuesta.json()
-    
+        print("Error transcribiendo (Conexión caída):", e)
+        return None
+
+    gc.collect()
+
+    # --- ENVIAMOS EL TEXTO A LA IA ---
     try:
-        contenido_ia = datos_respuesta['choices'][0]['message']['content']
-        historial.append({"role": "assistant", "content": contenido_ia})
-        guardar_historial(historial)
-        print(f"IA: {contenido_ia}")
-        print(f"[Historial: {len(historial)//2} turnos]")
+        respuesta_ia = preguntar(texto)
     except Exception as e:
-        print("No se pudo guardar en historial:", e)
-    
-    return jsonify(datos_respuesta)
+        print("Error en preguntar:", e)
+        return None
 
-@app.route('/hablar', methods=['POST'])
-def hablar():
+    return respuesta_ia
+
+
+def preguntar(texto):
+    gc.collect()
+
+    reemplazos = {
+        'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+        'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
+        'ñ': 'n', 'Ñ': 'N',
+        '¿': '', '?': '', '¡': '', '!': '',
+        ',': '', '.': '', ':': '', ';': '',
+        '"': '', "'": '', '\n': ' ', '\r': ''
+    }
+
+    texto_limpio = texto
+    for original, nuevo in reemplazos.items():
+        texto_limpio = texto_limpio.replace(original, nuevo)
+    texto_limpio = texto_limpio.strip()
+    print("Texto limpio:", repr(texto_limpio))
+
+    gc.collect()
+
     try:
-        datos = request.get_json(force=True)
-        texto = datos.get('texto', '')
-        print(f"TTS: {texto}")
-
-        # Generar MP3 con gTTS
-        tts = gTTS(text=texto, lang='es')
-        mp3_buffer = io.BytesIO()
-        tts.write_to_fp(mp3_buffer)
-        mp3_buffer.seek(0)
-
-        # Convertir a WAV 8-bit, 8kHz, mono (compatible con DAC del ESP32)
-        audio = AudioSegment.from_mp3(mp3_buffer)
-        audio = audio.set_frame_rate(8000).set_channels(1).set_sample_width(1)
-
-        wav_buffer = io.BytesIO()
-        audio.export(wav_buffer, format="wav")
-        wav_buffer.seek(0)
-
-        return send_file(wav_buffer, mimetype='audio/wav')
+        url = "http://" + config.SERVIDOR + ":" + str(config.PUERTO) + "/preguntar"
+        body = ujson.dumps({"texto": texto_limpio})
+        # Le damos un timeout muy generoso por si Llama 3 tarda en pensar
+        resp = urequests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=30)
+        datos = resp.json()
+        resp.close()
+        return datos['choices'][0]['message']['content']
     except Exception as e:
-        print("Error en TTS:", e)
-        return jsonify({"error": str(e)}), 500
+        print("Error al conectar con la IA:", e)
+        return None
 
-@app.route('/reset', methods=['POST'])
-def reset():
-    global historial
-    historial = []
-    guardar_historial(historial)
-    print("Historial borrado.")
-    return jsonify({"status": "ok", "message": "Conversacion reiniciada"})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+def hablar(texto):
+    import reproductor
+    gc.collect()
+
+    reemplazos = {
+        'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+        'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
+        'ñ': 'n', 'Ñ': 'N'
+    }
+    texto_limpio = texto
+    for original, nuevo in reemplazos.items():
+        texto_limpio = texto_limpio.replace(original, nuevo)
+
+    try:
+        url = "http://" + config.SERVIDOR + ":" + str(config.PUERTO) + "/hablar"
+        body = ujson.dumps({"texto": texto_limpio})
+        resp = urequests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=60)
+        
+        with open("respuesta.wav", "wb") as f:
+            f.write(resp.content)
+        resp.close()
+        gc.collect()
+
+        reproductor.reproducir("respuesta.wav")
+
+    except Exception as e:
+        print("Error al descargar voz:", e)
