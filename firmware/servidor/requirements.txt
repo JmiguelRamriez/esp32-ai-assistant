@@ -1,6 +1,5 @@
-flask
-requests
-python-dotenv
-gunicorn
-gtts
-pydub
+servidor.py
+requirements.txt
+Procfile
+.gitignore
+runtime.txt
