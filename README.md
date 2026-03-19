@@ -1,6 +1,6 @@
 # Asistente de IA con ESP32 🤖
 
-## Este proyecto implementa un asistente de voz basado en inteligencia artificial utilizando el microcontrolador ESP32. El asistente puede escuchar tus preguntas, procesarlas a través de un servidor remoto (Flask) usando modelos de transcripción y generación de lenguaje (Groq), y responder conversando por un altavoz además de mostrar expresiones animadas (EMO) en una pantalla OLED.
+## Este proyecto implementa un asistente de voz basado en inteligencia artificial utilizando el microcontrolador ESP32. El asistente puede escuchar tus preguntas, procesarlas a través de un servidor remoto (Flask) usando modelos de transcripción y generación de lenguaje (Groq), y responder conversando por un altavoz además de mostrar expresiones animadas en una pantalla OLED.
 
 ## Arquitectura del Sistema
 
