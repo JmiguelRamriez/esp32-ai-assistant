@@ -25,7 +25,8 @@ def escuchar_y_preguntar(boton):
             headers={
                 "Content-Type": "audio/wav",
                 "Content-Length": str(tam)
-            }
+            },
+            timeout=60
         )
         datos = resp.json()
         resp.close()
