@@ -1,6 +1,6 @@
 import usocket
 import urequests
-import ssl  # <-- NUEVO: Librería necesaria para conectarse a Render
+import ssl  # <-- CORRECCIÓN: Usamos 'ssl' normal
 import config
 import grabar
 import ujson
@@ -26,7 +26,7 @@ def escuchar_y_preguntar(boton):
         sock.settimeout(20.0)
         sock.connect(addr)
         
-        # --- LA MAGIA: Envolvemos el socket en SSL para que Render lo acepte ---
+        # --- LA MAGIA: Envolvemos el socket en SSL ---
         if config.PUERTO == 443:
             sock = ssl.wrap_socket(sock, server_hostname=config.SERVIDOR)
         
@@ -102,7 +102,6 @@ def preguntar(texto):
     gc.collect()
 
     try:
-        # --- CAMBIO: Usamos "https://" y quitamos la inserción del puerto ---
         url = "https://" + config.SERVIDOR + "/preguntar"
         
         body = ujson.dumps({"texto": texto_limpio})
@@ -129,7 +128,6 @@ def hablar(texto):
         texto_limpio = texto_limpio.replace(original, nuevo)
 
     try:
-        # --- CAMBIO: Usamos "https://" y quitamos la inserción del puerto ---
         url = "https://" + config.SERVIDOR + "/hablar"
         
         body = ujson.dumps({"texto": texto_limpio})
