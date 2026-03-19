@@ -28,7 +28,7 @@ def escuchar_y_preguntar(boton):
         
         # --- LA MAGIA: Envolvemos el socket en SSL para que Render lo acepte ---
         if config.PUERTO == 443:
-            sock = ussl.wrap_socket(sock, server_hostname=config.SERVIDOR)
+            sock = ssl.wrap_socket(sock, server_hostname=config.SERVIDOR)
         
         # Quitamos el puerto de la cabecera Host, Render prefiere solo el dominio
         request = (
