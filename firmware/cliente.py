@@ -1,12 +1,12 @@
 import usocket
-import urequests
-import ssl  # <-- CORRECCIÓN: Usamos 'ssl' normal
+import ssl
 import config
 import grabar
 import ujson
 import os
 import gc
 import pantalla
+import urequests
 
 def escuchar_y_preguntar(boton):
     grabar.grabar(boton)
@@ -14,26 +14,24 @@ def escuchar_y_preguntar(boton):
 
     pantalla.mostrar_pensando()
     print("Memoria libre:", gc.mem_free())
-
-    # --- ENVÍO DE AUDIO POR SOCKETS ENCRIPTADOS (Para la Nube) ---
+    
+    dominio = config.SERVIDOR.strip()
+    
     try:
         tam = os.stat("audio.wav")[6]
+        print(f"Subiendo {tam} bytes por socket manual...")
+
+        addr = usocket.getaddrinfo(dominio, config.PUERTO, 0, usocket.SOCK_STREAM)[0][-1]
+        sock = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+        sock.settimeout(30.0) 
         
-        # Resolvemos la IP de Render
-        addr = usocket.getaddrinfo(config.SERVIDOR, config.PUERTO)[0][-1]
-        
-        sock = usocket.socket()
-        sock.settimeout(20.0)
         sock.connect(addr)
-        
-        # --- LA MAGIA: Envolvemos el socket en SSL ---
         if config.PUERTO == 443:
-            sock = ssl.wrap_socket(sock, server_hostname=config.SERVIDOR)
-        
-        # Quitamos el puerto de la cabecera Host, Render prefiere solo el dominio
+            sock = ssl.wrap_socket(sock, server_hostname=dominio)
+            
         request = (
-            "POST /transcribir HTTP/1.1\r\n"
-            "Host: " + config.SERVIDOR + "\r\n"
+            "POST /transcribir HTTP/1.0\r\n"
+            "Host: " + dominio + "\r\n"
             "Content-Type: audio/wav\r\n"
             "Content-Length: " + str(tam) + "\r\n"
             "Connection: close\r\n\r\n"
@@ -42,32 +40,51 @@ def escuchar_y_preguntar(boton):
         sock.write(request)
         
         with open("audio.wav", "rb") as f:
-            buf = bytearray(512)
+            buf = bytearray(1024)
             while True:
                 n = f.readinto(buf)
                 if n == 0:
                     break
-                sock.write(buf[:n])
+                
+                chunk = buf[:n]
+                escrito = 0
+                while escrito < n:
+                    res = sock.write(chunk[escrito:])
+                    if res:
+                        escrito += res
+                        
+        print("Audio enviado, esperando respuesta...")
         
-        # Leemos la respuesta de forma segura
         respuesta_bytes = b""
         while True:
-            chunk = sock.read(512)
-            if not chunk:
+            try:
+                chunk = sock.read(512)
+                if not chunk:
+                    break
+                respuesta_bytes += chunk
+            except Exception as e:
                 break
-            respuesta_bytes += chunk
-            
+                
         sock.close()
-        respuesta = respuesta_bytes.decode()
+        
+        respuesta = respuesta_bytes.decode('utf-8')
         gc.collect()
         
-        cuerpo = respuesta.split("\r\n\r\n", 1)[1]
-        datos = ujson.loads(cuerpo)
-        texto = datos['text']
-        print("Escuché:", texto)
+        inicio = respuesta.find('{')
+        fin = respuesta.rfind('}') + 1
         
+        if inicio != -1 and fin != -1:
+            cuerpo = respuesta[inicio:fin]
+            datos = ujson.loads(cuerpo)
+            texto = datos.get('text', '')
+            print("Escuché:", texto)
+        else:
+            print("Error: El servidor no devolvió un JSON.")
+            print("Respuesta cruda:", respuesta)
+            return None
+            
     except Exception as e:
-        print("Error transcribiendo (Conexión caída):", e)
+        print("Error en socket manual:", e)
         return None
 
     gc.collect()
@@ -97,13 +114,11 @@ def preguntar(texto):
     for original, nuevo in reemplazos.items():
         texto_limpio = texto_limpio.replace(original, nuevo)
     texto_limpio = texto_limpio.strip()
+    
     print("Texto limpio:", repr(texto_limpio))
 
-    gc.collect()
-
     try:
-        url = "https://" + config.SERVIDOR + "/preguntar"
-        
+        url = "https://" + config.SERVIDOR.strip() + "/preguntar"
         body = ujson.dumps({"texto": texto_limpio})
         resp = urequests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=30)
         datos = resp.json()
@@ -128,16 +143,24 @@ def hablar(texto):
         texto_limpio = texto_limpio.replace(original, nuevo)
 
     try:
-        url = "https://" + config.SERVIDOR + "/hablar"
-        
+        url = "https://" + config.SERVIDOR.strip() + "/hablar"
         body = ujson.dumps({"texto": texto_limpio})
+        
+        print("Descargando audio de respuesta...")
         resp = urequests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=60)
         
+        # Leemos por bloques directos al archivo para no saturar la RAM
         with open("respuesta.wav", "wb") as f:
-            f.write(resp.content)
+            while True:
+                chunk = resp.raw.read(1024)
+                if not chunk:
+                    break
+                f.write(chunk)
+                
         resp.close()
         gc.collect()
 
+        print("Reproduciendo...")
         reproductor.reproducir("respuesta.wav")
 
     except Exception as e:
