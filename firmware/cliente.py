@@ -1,4 +1,5 @@
 import usocket
+import urequests
 import ssl
 import config
 import grabar
@@ -6,9 +7,9 @@ import ujson
 import os
 import gc
 import pantalla
-import urequests
 
 def escuchar_y_preguntar(boton):
+    # 1. Grabamos el audio desde el I2S(1)
     grabar.grabar(boton)
     gc.collect()
 
@@ -21,6 +22,7 @@ def escuchar_y_preguntar(boton):
         tam = os.stat("audio.wav")[6]
         print(f"Subiendo {tam} bytes por socket manual...")
 
+        # 2. Configuración de conexión segura para la transcripción
         addr = usocket.getaddrinfo(dominio, config.PUERTO, 0, usocket.SOCK_STREAM)[0][-1]
         sock = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
         sock.settimeout(30.0) 
@@ -29,6 +31,7 @@ def escuchar_y_preguntar(boton):
         if config.PUERTO == 443:
             sock = ssl.wrap_socket(sock, server_hostname=dominio)
             
+        # Petición HTTP/1.0 para cerrar la conexión al terminar
         request = (
             "POST /transcribir HTTP/1.0\r\n"
             "Host: " + dominio + "\r\n"
@@ -39,6 +42,7 @@ def escuchar_y_preguntar(boton):
         
         sock.write(request)
         
+        # Enviamos el archivo por pedazos (chunks) para no saturar la RAM
         with open("audio.wav", "rb") as f:
             buf = bytearray(1024)
             while True:
@@ -55,6 +59,7 @@ def escuchar_y_preguntar(boton):
                         
         print("Audio enviado, esperando respuesta...")
         
+        # Leemos la respuesta del servidor
         respuesta_bytes = b""
         while True:
             try:
@@ -62,11 +67,12 @@ def escuchar_y_preguntar(boton):
                 if not chunk:
                     break
                 respuesta_bytes += chunk
-            except Exception as e:
+            except:
                 break
                 
         sock.close()
         
+        # Extraemos el texto de la transcripción
         respuesta = respuesta_bytes.decode('utf-8')
         gc.collect()
         
@@ -80,7 +86,6 @@ def escuchar_y_preguntar(boton):
             print("Escuché:", texto)
         else:
             print("Error: El servidor no devolvió un JSON.")
-            print("Respuesta cruda:", respuesta)
             return None
             
     except Exception as e:
@@ -89,6 +94,7 @@ def escuchar_y_preguntar(boton):
 
     gc.collect()
 
+    # 3. Consultamos a la IA
     try:
         respuesta_ia = preguntar(texto)
     except Exception as e:
@@ -101,12 +107,8 @@ def escuchar_y_preguntar(boton):
 def preguntar(texto):
     gc.collect()
 
+    # Limpiamos caracteres que rompen la estructura del JSON
     reemplazos = {
-        'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
-        'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
-        'ñ': 'n', 'Ñ': 'N',
-        '¿': '', '?': '', '¡': '', '!': '',
-        ',': '', '.': '', ':': '', ';': '',
         '"': '', "'": '', '\n': ' ', '\r': ''
     }
 
@@ -115,11 +117,14 @@ def preguntar(texto):
         texto_limpio = texto_limpio.replace(original, nuevo)
     texto_limpio = texto_limpio.strip()
     
-    print("Texto limpio:", repr(texto_limpio))
+    print("Texto limpio para IA:", repr(texto_limpio))
 
     try:
         url = "https://" + config.SERVIDOR.strip() + "/preguntar"
-        body = ujson.dumps({"texto": texto_limpio})
+        
+        # FIX: Codificamos a bytes UTF-8 para un conteo de longitud exacto
+        body = ujson.dumps({"texto": texto_limpio}).encode('utf-8')
+        
         resp = urequests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=30)
         datos = resp.json()
         resp.close()
@@ -133,23 +138,25 @@ def hablar(texto):
     import reproductor
     gc.collect()
 
+    # Limpieza para el envío a la síntesis de voz
     reemplazos = {
-        'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
-        'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
-        'ñ': 'n', 'Ñ': 'N'
+        '"': '', "'": '', '\n': ' ', '\r': ' '
     }
+    
     texto_limpio = texto
     for original, nuevo in reemplazos.items():
         texto_limpio = texto_limpio.replace(original, nuevo)
 
     try:
         url = "https://" + config.SERVIDOR.strip() + "/hablar"
-        body = ujson.dumps({"texto": texto_limpio})
+        
+        # FIX: Codificamos a bytes UTF-8 para evitar errores de delimitador JSON
+        body = ujson.dumps({"texto": texto_limpio}).encode('utf-8')
         
         print("Descargando audio de respuesta...")
         resp = urequests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=60)
         
-        # Leemos por bloques directos al archivo para no saturar la RAM
+        # Guardamos el audio por bloques directos a la memoria flash
         with open("respuesta.wav", "wb") as f:
             while True:
                 chunk = resp.raw.read(1024)

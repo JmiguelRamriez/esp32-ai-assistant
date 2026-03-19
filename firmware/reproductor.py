@@ -4,13 +4,13 @@ import struct
 import os
 import gc
 
+# LOS PINES SE INICIALIZAN AQUÍ AFUERA (Una sola vez)
+dac_l = DAC(Pin(25))
+dac_r = DAC(Pin(26))
+
 def reproducir(nombre="respuesta.wav"):
     gc.collect()
     try:
-        # LOS PINES SE INICIALIZAN AQUÍ ADENTRO
-        dac_l = DAC(Pin(25))
-        dac_r = DAC(Pin(26))
-        
         tamano = os.stat(nombre)[6]
         print(f"Tamaño del audio descargado: {tamano} bytes")
         
