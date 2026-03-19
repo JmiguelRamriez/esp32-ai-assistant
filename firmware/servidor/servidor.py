@@ -38,6 +38,10 @@ MAX_TURNOS = 10
 
 @app.route('/transcribir', methods=['POST'])
 def transcribir():
+    """
+    Endpoint que recibe el archivo temporal de audio porciones enviadas desde ESP32,
+    las guarda localmente y hace un request a la API de Groq para transcripción (Whisper).
+    """
     audio = request.data
     with open('temp.wav', 'wb') as f:
         f.write(audio)
@@ -54,6 +58,11 @@ def transcribir():
 
 @app.route('/preguntar', methods=['POST'])
 def preguntar():
+    """
+    Alimenta la solicitud de texto (transcripción) al historial actual
+    y consulta a una IA de generación de texto en Groq.
+    Retorna la respuesta en JSON.
+    """
     global historial
     
     try:
@@ -103,6 +112,11 @@ def preguntar():
 
 @app.route('/hablar', methods=['POST'])
 def hablar():
+    """
+    Convierte el texto recibido a un archivo de audio MP3 usando gTTS, luego
+    lo convierte a un WAV sin signo (8-bits PCM_U8, 8000Hz mono) usando pyDub
+    para que sea compatible con los pines DAC integrados en el ESP32.
+    """
     try:
         # 1. Obtener el texto que envió el ESP32
         datos = request.get_json(force=True, silent=True)

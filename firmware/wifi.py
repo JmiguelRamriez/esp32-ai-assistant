@@ -3,7 +3,12 @@ import network
 import time
 
 def conectar():
-    wlan = network.WLAN(network.STA_IF)
+    """
+    Intenta establecer conexión con la red WiFi configurada en config.py.
+    Aplica una secuencia de reinicio de la interfaz de red para 
+    evitar estados corruptos comunes en el ESP32.
+    """
+    wlan = network.WLAN(network.STA_IF) # Modo Estación (Cliente WiFi)
     
     # El truco para limpiar el estado corrupto: apagar, encender y desconectar a la fuerza
     wlan.active(False)
@@ -25,4 +30,4 @@ def conectar():
     if wlan.isconnected():
         print("¡Conectado exitosamente! IP:", wlan.ifconfig()[0])
     else:
-        print("Falló la conexión. Revisa que el nombre y contraseña de tu red de casa sean correctos.")
+        print("Falló la conexión. Revisa que el nombre y contraseña de tu red de casa sean correctos.")

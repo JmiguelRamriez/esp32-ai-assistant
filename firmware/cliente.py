@@ -9,6 +9,13 @@ import gc
 import pantalla
 
 def escuchar_y_preguntar(boton):
+    """
+    Coordina el flujo completo: 
+    1. Graba el audio.
+    2. Envía el WAV al servidor por Sockets puros usando HTTP POST fragmentado 
+       (Chunked / Multipart manual) para no agotar la RAM de MicroPython.
+    3. Retorna la respuesta generada por la IA como texto.
+    """
     # 1. Grabamos el audio desde el I2S(1)
     grabar.grabar(boton)
     gc.collect()
@@ -105,6 +112,10 @@ def escuchar_y_preguntar(boton):
 
 
 def preguntar(texto):
+    """
+    Realiza una petición HTTP POST al endpoint /preguntar del backend.
+    Envia la transcripción de voz para recibir la respuesta cognitiva del LLM.
+    """
     gc.collect()
 
     # Limpiamos caracteres que rompen la estructura del JSON
@@ -135,6 +146,11 @@ def preguntar(texto):
 
 
 def hablar(texto):
+    """
+    Toma el texto de respuesta devuelto por la IA, solicita al backend un archivo 
+    de audio WAV generado con TTS, lo descarga directamente en memoria flash 
+    y luego invoca la función de reproducción DAC.
+    """
     import reproductor
     gc.collect()
 

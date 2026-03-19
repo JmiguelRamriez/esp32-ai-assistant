@@ -30,48 +30,48 @@ def limpiar():
 
 def draw_rect_redondeado(x, y, w, h, color=1):
     """Rectángulo con esquinas 'recortadas' de 1px para simular bordes redondeados."""
-    # Cara principal
+    if w <= 0 or h <= 0: return
     display.fill_rect(x+1, y,   w-2, h,   color)
     display.fill_rect(x,   y+1, w,   h-2, color)
 
+def draw_ceja(x, y, w, angle, color=1):
+    """
+    Dibuja una ceja arriba del ojo.
+    angle: 0 (plana), 1 (enojado \ ), -1 (triste / )
+    """
+    if angle == 0:
+        display.fill_rect(x, y, w, 3, color)
+    elif angle == 1: # \ para el ojo izquierdo, / para el derecho se invierte
+        display.line(x, y, x+w, y+4, color)
+        display.line(x, y+1, x+w, y+5, color)
+        display.line(x, y+2, x+w, y+6, color)
+    elif angle == -1: # /
+        display.line(x, y+4, x+w, y, color)
+        display.line(x, y+5, x+w, y+1, color)
+        display.line(x, y+6, x+w, y+2, color)
+
 def draw_ojo_emo(x, y, w=26, h=20, color=1):
-    """
-    Ojo rectangular grande estilo EMO.
-    (x, y) = esquina superior-izquierda del ojo.
-    El borde exterior es un rectángulo hueco y el interior está relleno.
-    """
-    # Relleno sólido
     draw_rect_redondeado(x, y, w, h, color)
 
 def draw_ojo_parpadeo(x, y, w=26, color=1):
-    """Ojo entrecerrado (línea horizontal gruesa) — frame de parpadeo."""
     display.fill_rect(x+1, y+1, w-2, 3, color)
 
 def draw_ojo_feliz(x, y, w=26, h=20, color=1):
-    """
-    Ojo con la mitad inferior rellena y la superior vacía → efecto "^^" EMO.
-    """
     mid = h // 2
     draw_rect_redondeado(x, y + mid, w, mid, color)
-    # Borde superior para dar forma
     display.hline(x+1, y + mid - 1, w-2, color)
 
 def draw_ojo_triste(x, y, w=26, h=20, color=1):
-    """
-    Ojo con la mitad superior rellena → expresión caída.
-    """
     mid = h // 2
     draw_rect_redondeado(x, y, w, mid + 1, color)
 
 def draw_ojo_dormido(x, y, w=26, color=1):
-    """Línea horizontal delgada — ojos cerrados durmiendo."""
     display.fill_rect(x+1, y, w-2, 2, color)
 
 def draw_ojo_sorprendido(x, y, w=26, h=20, color=1):
-    """Ojo con un punto de luz (highlight) para expresión sorprendida."""
     draw_rect_redondeado(x, y, w, h, color)
-    # Pequeño destello blanco en esquina superior
-    display.fill_rect(x+3, y+2, 4, 4, 0)
+    # Pupila contraida / mirada fija
+    display.fill_rect(x+w//2-2, y+h//2-2, 4, 4, 0)
 
 def draw_z(x, y, size=6, color=1):
     h = size
@@ -85,27 +85,29 @@ def draw_dot(x, y, color=1):
 
 # -------------------------------------------------------------------
 # POSICIONES DE LOS OJOS EMO
-# Pantalla 128x64 — dos ojos grandes centrados
 # -------------------------------------------------------------------
-EYE_W  = 20   # Ancho de cada ojo
-EYE_H  = 30   # Alto de cada ojo (más largo que ancho → estilo alegre)
-EYE_GAP = 10  # Espacio entre los dos ojos
-EYE_L_X = CX - EYE_GAP//2 - EYE_W   # = 39
-EYE_R_X = CX + EYE_GAP//2            # = 69
-EYE_Y   = CY - EYE_H//2              # = 17
+EYE_W  = 22   
+EYE_H  = 30   
+EYE_GAP = 12  
+EYE_L_X = CX - EYE_GAP//2 - EYE_W   
+EYE_R_X = CX + EYE_GAP//2           
+EYE_Y   = CY - EYE_H//2             
 
 # -------------------------------------------------------------------
 # ESTADOS
 # -------------------------------------------------------------------
 
 def mostrar_reposo():
-    """Ojos dormidos (líneas finas) con animación ZZZ."""
+    """Ojos dormidos (líneas finas) con cejas suaves y animación ZZZ."""
     for i in range(4):
         display.fill(0)
         draw_ojo_dormido(EYE_L_X, EYE_Y + EYE_H//2, EYE_W)
         draw_ojo_dormido(EYE_R_X, EYE_Y + EYE_H//2, EYE_W)
+        
+        # Cejas relajadas
+        draw_ceja(EYE_L_X, EYE_Y - 4, EYE_W, -1) # /
+        draw_ceja(EYE_R_X, EYE_Y - 4, EYE_W, 1)  # \
 
-        # ZZZ flotando arriba-derecha
         sx = EYE_R_X + EYE_W + 4
         sy = EYE_Y - 4
         if i >= 1: draw_z(sx,    sy+6,  4)
@@ -113,23 +115,31 @@ def mostrar_reposo():
         if i >= 3: draw_z(sx+14, sy-4,  8)
 
         display.show()
-        time.sleep(0.4)
+        time.sleep(0.3)
 
 def mostrar_escuchando():
-    """Ojos abiertos grandes con destello — atento y sorprendido."""
+    """Ojos grandes con pupilas atentas y cejas levantadas."""
     display.fill(0)
+    # Cejas interesadas
+    draw_ceja(EYE_L_X, EYE_Y - 8, EYE_W, 1)  # \
+    draw_ceja(EYE_R_X, EYE_Y - 8, EYE_W, -1) # /
+    
     draw_ojo_sorprendido(EYE_L_X, EYE_Y, EYE_W, EYE_H)
     draw_ojo_sorprendido(EYE_R_X, EYE_Y, EYE_W, EYE_H)
     display.show()
 
 def mostrar_pensando():
-    """Ojos normales + animación de puntitos ..."""
+    """Expresión de duda: un ojo normal, el otro entrecerrado."""
     for i in range(4):
         display.fill(0)
-        draw_ojo_emo(EYE_L_X, EYE_Y, EYE_W, EYE_H)
-        draw_ojo_emo(EYE_R_X, EYE_Y, EYE_W, EYE_H)
+        # Ceja izqda plana, ceja drcha baja
+        draw_ceja(EYE_L_X, EYE_Y - 6, EYE_W, 0)
+        draw_ceja(EYE_R_X, EYE_Y - 2, EYE_W, 1)
 
-        # Puntitos debajo de los ojos
+        draw_ojo_emo(EYE_L_X, EYE_Y, EYE_W, EYE_H)
+        # Ojo derecho más pequeño (pensando)
+        draw_rect_redondeado(EYE_R_X, EYE_Y + EYE_H//4, EYE_W, EYE_H//2, 1)
+
         dot_y = EYE_Y + EYE_H + 6
         dot_x = CX - 8
         gap = 8
@@ -141,23 +151,25 @@ def mostrar_pensando():
         time.sleep(0.35)
 
 def mostrar_hablando():
-    """Ojos felices ^^ (mitad inferior) con animación de boca abierta/cerrada."""
+    """Ojos muy felices ^^ con cejas altas y boca animada."""
     for i in range(6):
         display.fill(0)
+        
+        # Cejas altas y felices
+        draw_ceja(EYE_L_X, EYE_Y - 6, EYE_W, -1)
+        draw_ceja(EYE_R_X, EYE_Y - 6, EYE_W, 1)
+
         draw_ojo_feliz(EYE_L_X, EYE_Y, EYE_W, EYE_H)
         draw_ojo_feliz(EYE_R_X, EYE_Y, EYE_W, EYE_H)
 
-        # Boca debajo: alterna abierta/cerrada
-        boca_y = EYE_Y + EYE_H + 5
-        boca_x = CX - 8
+        # Boca animada redonda
+        boca_y = EYE_Y + EYE_H + 2
+        boca_x = CX - 6
         if i % 2 == 0:
-            # Boca cerrada — línea horizontal
-            display.fill_rect(boca_x, boca_y, 16, 3, 1)
+            draw_rect_redondeado(boca_x, boca_y, 12, 4, 1) # cerrada
         else:
-            # Boca abierta — rectángulo pequeño
-            draw_rect_redondeado(boca_x, boca_y, 16, 7, 1)
+            draw_rect_redondeado(boca_x - 2, boca_y, 16, 10, 1) # abierta (sonora)
 
-        # Ondas de sonido
         if i % 2 == 1:
             sx = EYE_R_X + EYE_W + 3
             sy = EYE_Y + 4
@@ -171,18 +183,18 @@ def mostrar_hablando():
         time.sleep(0.18)
 
 def mostrar_triste():
-    """Ojos caídos — para estados de error."""
+    """Para errores."""
     display.fill(0)
+    draw_ceja(EYE_L_X, EYE_Y - 2, EYE_W, 1)
+    draw_ceja(EYE_R_X, EYE_Y - 2, EYE_W, -1)
     draw_ojo_triste(EYE_L_X, EYE_Y, EYE_W, EYE_H)
     draw_ojo_triste(EYE_R_X, EYE_Y, EYE_W, EYE_H)
     display.show()
 
 def parpadear_una_vez():
-    """Anima un parpadeo rápido sin cambiar el estado actual."""
-    # Cubrir ojos con rectángulo negro (parpadeo)
-    display.fill_rect(EYE_L_X, EYE_Y, EYE_W, EYE_H, 0)
-    display.fill_rect(EYE_R_X, EYE_Y, EYE_W, EYE_H, 0)
+    display.fill_rect(EYE_L_X, EYE_Y - 8, EYE_W, EYE_H + 8, 0)
+    display.fill_rect(EYE_R_X, EYE_Y - 8, EYE_W, EYE_H + 8, 0)
     draw_ojo_parpadeo(EYE_L_X, EYE_Y + EYE_H//2 - 1, EYE_W)
     draw_ojo_parpadeo(EYE_R_X, EYE_Y + EYE_H//2 - 1, EYE_W)
     display.show()
-    time.sleep(0.08)
+    time.sleep(0.08)
