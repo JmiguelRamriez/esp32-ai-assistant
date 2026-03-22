@@ -7,6 +7,80 @@ import ujson
 import os
 import gc
 import pantalla
+import time  
+
+def escuchar_y_preguntar_wake():
+    """Graba 4 segundos fijos y consulta a la IA (sin botón)."""
+    import grabar as _grabar
+
+    class FakeBoton:
+        def __init__(self): 
+            self._fin = time.ticks_add(time.ticks_ms(), 4000)
+        def value(self): 
+            return 0 if time.ticks_diff(self._fin, time.ticks_ms()) > 0 else 1
+
+    _grabar.grabar(FakeBoton(), "audio.wav")
+    gc.collect()
+
+    # A partir de aquí es igual que escuchar_y_preguntar
+    pantalla.mostrar_pensando()
+    dominio = config.SERVIDOR.strip()
+
+    try:
+        tam = os.stat("audio.wav")[6]
+        addr = usocket.getaddrinfo(dominio, config.PUERTO, 0, usocket.SOCK_STREAM)[0][-1]
+        sock = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
+        sock.settimeout(60.0)
+        sock.connect(addr)
+        if config.PUERTO == 443:
+            sock = ssl.wrap_socket(sock, server_hostname=dominio)
+
+        request = (
+            "POST /transcribir HTTP/1.0\r\n"
+            "Host: " + dominio + "\r\n"
+            "Content-Type: audio/wav\r\n"
+            "Content-Length: " + str(tam) + "\r\n"
+            "Connection: close\r\n\r\n"
+        ).encode()
+        sock.write(request)
+
+        with open("audio.wav", "rb") as f:
+            buf = bytearray(1024)
+            while True:
+                n = f.readinto(buf)
+                if n == 0: break
+                escrito = 0
+                chunk = buf[:n]
+                while escrito < n:
+                    res = sock.write(chunk[escrito:])
+                    if res: escrito += res
+
+        respuesta_bytes = b""
+        while True:
+            try:
+                chunk = sock.read(512)
+                if not chunk: break
+                respuesta_bytes += chunk
+            except: break
+        sock.close()
+
+        respuesta = respuesta_bytes.decode('utf-8')
+        gc.collect()
+        inicio = respuesta.find('{')
+        fin = respuesta.rfind('}') + 1
+        if inicio != -1 and fin != -1:
+            datos = ujson.loads(respuesta[inicio:fin])
+            texto = datos.get('text', '')
+            print("Escuché:", texto)
+        else:
+            return None
+    except Exception as e:
+        print("Error transcribiendo wake:", e)
+        return None
+
+    gc.collect()
+    return preguntar(texto)
+
 
 def escuchar_y_preguntar(boton):
     """
@@ -188,3 +262,4 @@ def hablar(texto):
 
     except Exception as e:
         print("Error al descargar voz:", e)
+

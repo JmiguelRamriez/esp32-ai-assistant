@@ -104,7 +104,7 @@ while True:
 
     # ── Prioridad 2: wake word ────────────────────────────
     elif time.time() - _ultimo_habla > 4:
-        if grabar.grabar_wake_con_vad("wake.wav", umbral=300, duracion_ms=2500, timeout_ms=3000):
+        if grabar.grabar_wake_con_vad("wake.wav", umbral=300, duracion_ms=2500, timeout_ms=1500):
             gc.collect()
             if verificar_wake_word():
                 print("¡Wake word 'Luna' detectado!")

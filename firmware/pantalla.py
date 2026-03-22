@@ -1,15 +1,29 @@
 from machine import Pin, SoftI2C
 import sh1106
 import time
-import urandom
 
-# Variables globales
-i2c = None
+# ─── Variables globales ────────────────────────────────────────────────────────
+i2c     = None
 display = None
 
-# Centro de la pantalla (128x64)
-CX = 64
-CY = 32
+CX = 64   # Centro X de la pantalla (128px)
+CY = 32   # Centro Y de la pantalla (64px)
+
+# Geometría de los ojos — sin cejas, más compactos
+EYE_W   = 24          # Ancho de cada ojo
+EYE_H   = 30          # Alto de cada ojo
+EYE_GAP = 14          # Separación entre ojos
+EYE_L_X = CX - EYE_GAP // 2 - EYE_W   # X del ojo izquierdo
+EYE_R_X = CX + EYE_GAP // 2            # X del ojo derecho
+EYE_Y   = CY - EYE_H // 2 - 4         # Y común (ligeramente arriba para el reloj)
+
+# Offset horario — México Centro (Querétaro) UTC-6, sin horario de verano
+UTC_OFFSET = -6
+
+_hora_ok = False  # True si NTP fue exitoso
+
+
+# ─── Inicialización ────────────────────────────────────────────────────────────
 
 def iniciar():
     global i2c, display
@@ -18,183 +32,247 @@ def iniciar():
     display = sh1106.SH1106_I2C(128, 64, i2c, addr=0x3c)
     display.poweron()
     limpiar()
-    print("Pantalla lista (Modo EMO Activado)")
+    print("Pantalla lista")
+
+def sincronizar_hora():
+    """Sincronizar reloj interno con NTP (llamar después de conectar WiFi)."""
+    global _hora_ok
+    try:
+        import ntptime
+        ntptime.settime()
+        _hora_ok = True
+        print("Hora NTP sincronizada")
+    except Exception as e:
+        _hora_ok = False
+        print("NTP falló:", e)
 
 def limpiar():
     display.fill(0)
     display.show()
 
-# -------------------------------------------------------------------
-# PRIMITIVAS BASE
-# -------------------------------------------------------------------
 
-def draw_rect_redondeado(x, y, w, h, color=1):
-    """Rectángulo con esquinas 'recortadas' de 1px para simular bordes redondeados."""
-    if w <= 0 or h <= 0: return
-    display.fill_rect(x+1, y,   w-2, h,   color)
-    display.fill_rect(x,   y+1, w,   h-2, color)
+# ─── Primitivas de dibujo ──────────────────────────────────────────────────────
 
-def draw_ceja(x, y, w, angle, color=1):
-    """
-    Dibuja una ceja arriba del ojo.
-    angle: 0 (plana), 1 (enojado \ ), -1 (triste / )
-    """
-    if angle == 0:
-        display.fill_rect(x, y, w, 3, color)
-    elif angle == 1: # \ para el ojo izquierdo, / para el derecho se invierte
-        display.line(x, y, x+w, y+4, color)
-        display.line(x, y+1, x+w, y+5, color)
-        display.line(x, y+2, x+w, y+6, color)
-    elif angle == -1: # /
-        display.line(x, y+4, x+w, y, color)
-        display.line(x, y+5, x+w, y+1, color)
-        display.line(x, y+6, x+w, y+2, color)
+def _r(x, y, w, h, c=1):
+    """Rectángulo con esquinas ligeramente redondeadas."""
+    if w <= 0 or h <= 0:
+        return
+    display.fill_rect(x + 1, y,     w - 2, h,     c)
+    display.fill_rect(x,     y + 1, w,     h - 2, c)
 
-def draw_ojo_emo(x, y, w=26, h=20, color=1):
-    draw_rect_redondeado(x, y, w, h, color)
 
-def draw_ojo_parpadeo(x, y, w=26, color=1):
-    display.fill_rect(x+1, y+1, w-2, 3, color)
+# ─── Formas de ojo ────────────────────────────────────────────────────────────
 
-def draw_ojo_feliz(x, y, w=26, h=20, color=1):
+def _ojo_abierto(x, y, w=EYE_W, h=EYE_H, c=1):
+    """Ojo rectangular con pupila centrada."""
+    _r(x, y, w, h, c)
+    # Pupila (cuadradito invertido de color)
+    display.fill_rect(x + w // 2 - 2, y + h // 2 - 2, 4, 4, 1 - c)
+
+def _ojo_sorprendido(x, y, w=EYE_W, h=EYE_H, c=1):
+    """Ojo muy abierto — pupila pequeña para expresar sorpresa."""
+    _r(x, y, w, h, c)
+    display.fill_rect(x + w // 2 - 1, y + h // 2 - 1, 2, 2, 1 - c)
+
+def _ojo_feliz(x, y, w=EYE_W, h=EYE_H, c=1):
+    """Ojo ^^ — solo mitad inferior rellena."""
     mid = h // 2
-    draw_rect_redondeado(x, y + mid, w, mid, color)
-    display.hline(x+1, y + mid - 1, w-2, color)
+    _r(x, y + mid, w, mid, c)
+    display.hline(x + 1, y + mid - 1, w - 2, c)
 
-def draw_ojo_triste(x, y, w=26, h=20, color=1):
+def _ojo_triste(x, y, w=EYE_W, h=EYE_H, c=1):
+    """Ojo caído — solo mitad superior."""
     mid = h // 2
-    draw_rect_redondeado(x, y, w, mid + 1, color)
+    _r(x, y, w, mid + 1, c)
 
-def draw_ojo_dormido(x, y, w=26, color=1):
-    display.fill_rect(x+1, y, w-2, 2, color)
+def _ojo_dormido(x, y, w=EYE_W, c=1):
+    """Ojo cerrado — línea delgada."""
+    display.fill_rect(x + 1, y, w - 2, 2, c)
 
-def draw_ojo_sorprendido(x, y, w=26, h=20, color=1):
-    draw_rect_redondeado(x, y, w, h, color)
-    # Pupila contraida / mirada fija
-    display.fill_rect(x+w//2-2, y+h//2-2, 4, 4, 0)
+def _ojo_lateral(x, y, lado, w=EYE_W, h=EYE_H, c=1):
+    """Ojo con pupila desplazada: lado -1=izq, 0=centro, 1=der."""
+    _r(x, y, w, h, c)
+    offset = lado * (w // 4)
+    px = x + w // 2 - 2 + offset
+    display.fill_rect(px, y + h // 2 - 2, 4, 4, 1 - c)
 
-def draw_z(x, y, size=6, color=1):
-    h = size
-    w = int(size * 0.8)
-    display.hline(x, y, w, color)
-    display.line(x+w, y, x, y+h, color)
-    display.hline(x, y+h, w, color)
+def _ojo_cerrado_anim(x, y, apertura, w=EYE_W, h=EYE_H, c=1):
+    """Ojo con altura variable (para animación de parpadeo)."""
+    if apertura <= 0:
+        return
+    y_off = (h - apertura) // 2
+    _r(x, y + y_off, w, apertura, c)
 
-def draw_dot(x, y, color=1):
-    display.fill_rect(x, y, 3, 3, color)
 
-# -------------------------------------------------------------------
-# POSICIONES DE LOS OJOS EMO
-# -------------------------------------------------------------------
-EYE_W  = 22   
-EYE_H  = 30   
-EYE_GAP = 12  
-EYE_L_X = CX - EYE_GAP//2 - EYE_W   
-EYE_R_X = CX + EYE_GAP//2           
-EYE_Y   = CY - EYE_H//2             
+# ─── Boca ─────────────────────────────────────────────────────────────────────
 
-# -------------------------------------------------------------------
-# ESTADOS
-# -------------------------------------------------------------------
+def _boca(cx, y, estado, c=1):
+    """estado: 0=cerrada, 1=abierta redondeada."""
+    x = cx - 10
+    if estado == 0:
+        display.fill_rect(x, y, 20, 3, c)
+    else:
+        _r(x - 2, y, 24, 10, c)
+
+
+# ─── Auxiliares ───────────────────────────────────────────────────────────────
+
+def _z(x, y, s=6, c=1):
+    """Dibuja una 'Z' de tamaño s."""
+    w = int(s * 0.8)
+    display.hline(x, y, w, c)
+    display.line(x + w, y, x, y + s, c)
+    display.hline(x, y + s, w, c)
+
+def _dot(x, y, c=1):
+    display.fill_rect(x, y, 3, 3, c)
+
+def _hora_texto():
+    """Devuelve la hora local como string 'HH:MM'."""
+    try:
+        t = time.localtime()
+        h = (t[3] + UTC_OFFSET) % 24
+        return "{:02d}:{:02d}".format(h, t[4])
+    except:
+        return ""
+
+def _dibujar_reloj():
+    """Dibuja la hora centrada en la línea inferior de la pantalla."""
+    if not _hora_ok:
+        return
+    s = _hora_texto()
+    x = CX - len(s) * 4
+    display.text(s, x, 55, 1)
+
+
+# ─── Transición ───────────────────────────────────────────────────────────────
+
+def _transicion():
+    """Parpadeo suave como transición entre estados."""
+    pasos = 4
+    # Cerrar ojos
+    for i in range(pasos):
+        display.fill(0)
+        h = EYE_H - (EYE_H // pasos) * (i + 1)
+        if h > 0:
+            y_off = (EYE_H - h) // 2
+            _ojo_cerrado_anim(EYE_L_X, EYE_Y, h)
+            _ojo_cerrado_anim(EYE_R_X, EYE_Y, h)
+        display.show()
+        time.sleep_ms(35)
+
+    display.fill(0)
+    display.show()
+    time.sleep_ms(50)
+
+    # Abrir ojos
+    for i in range(pasos):
+        display.fill(0)
+        h = (EYE_H // pasos) * (i + 1)
+        _ojo_cerrado_anim(EYE_L_X, EYE_Y, h)
+        _ojo_cerrado_anim(EYE_R_X, EYE_Y, h)
+        display.show()
+        time.sleep_ms(35)
+
+
+# ─── Estados ──────────────────────────────────────────────────────────────────
 
 def mostrar_reposo():
-    """Ojos dormidos (líneas finas) con cejas suaves y animación ZZZ."""
-    for i in range(4):
-        display.fill(0)
-        draw_ojo_dormido(EYE_L_X, EYE_Y + EYE_H//2, EYE_W)
-        draw_ojo_dormido(EYE_R_X, EYE_Y + EYE_H//2, EYE_W)
-        
-        # Cejas relajadas
-        draw_ceja(EYE_L_X, EYE_Y - 4, EYE_W, -1) # /
-        draw_ceja(EYE_R_X, EYE_Y - 4, EYE_W, 1)  # \
+    """Prepara el estado de reposo (primer frame)."""
+    _transicion()
+    tick_reposo(0)
 
-        sx = EYE_R_X + EYE_W + 4
-        sy = EYE_Y - 4
-        if i >= 1: draw_z(sx,    sy+6,  4)
-        if i >= 2: draw_z(sx+6,  sy+1,  6)
-        if i >= 3: draw_z(sx+14, sy-4,  8)
+def tick_reposo(t):
+    """
+    Llamar desde main.py en cada ciclo del while.
+    't' es el contador del loop (incrementa cada 0.3 s aprox).
+    Actualiza la animación ZZZ y el reloj sin bloquear.
+    """
+    display.fill(0)
 
-        display.show()
-        time.sleep(0.3)
+    # Ojos durmiendo
+    ey = EYE_Y + EYE_H // 2
+    _ojo_dormido(EYE_L_X, ey)
+    _ojo_dormido(EYE_R_X, ey)
+
+    # ZZZ — aparecen de a poco y se reinician
+    fase = (t // 2) % 5
+    sx = EYE_R_X + EYE_W + 4
+    sy = EYE_Y + 2
+    if fase >= 1: _z(sx,      sy + 8,  4)
+    if fase >= 2: _z(sx + 6,  sy + 2,  6)
+    if fase >= 3: _z(sx + 13, sy - 4,  8)
+
+    # Reloj
+    _dibujar_reloj()
+
+    display.show()
+
 
 def mostrar_escuchando():
-    """Ojos grandes con pupilas atentas y cejas levantadas."""
+    """Ojos muy abiertos y sorprendidos — atención total."""
+    _transicion()
     display.fill(0)
-    # Cejas interesadas
-    draw_ceja(EYE_L_X, EYE_Y - 8, EYE_W, 1)  # \
-    draw_ceja(EYE_R_X, EYE_Y - 8, EYE_W, -1) # /
-    
-    draw_ojo_sorprendido(EYE_L_X, EYE_Y, EYE_W, EYE_H)
-    draw_ojo_sorprendido(EYE_R_X, EYE_Y, EYE_W, EYE_H)
+    _ojo_sorprendido(EYE_L_X, EYE_Y)
+    _ojo_sorprendido(EYE_R_X, EYE_Y)
     display.show()
+
 
 def mostrar_pensando():
-    """Expresión de duda: un ojo normal, el otro entrecerrado."""
-    for i in range(4):
-        display.fill(0)
-        # Ceja izqda plana, ceja drcha baja
-        draw_ceja(EYE_L_X, EYE_Y - 6, EYE_W, 0)
-        draw_ceja(EYE_R_X, EYE_Y - 2, EYE_W, 1)
+    """Ojos que miran a los lados con puntos de carga."""
+    _transicion()
+    dot_y = EYE_Y + EYE_H + 7
+    dot_x = CX - 12
 
-        draw_ojo_emo(EYE_L_X, EYE_Y, EYE_W, EYE_H)
-        # Ojo derecho más pequeño (pensando)
-        draw_rect_redondeado(EYE_R_X, EYE_Y + EYE_H//4, EYE_W, EYE_H//2, 1)
+    for ciclo in range(3):
+        for lado in [-1, 0, 1, 0]:
+            display.fill(0)
+            _ojo_lateral(EYE_L_X, EYE_Y, lado)
+            _ojo_lateral(EYE_R_X, EYE_Y, lado)
+            # Puntos de carga que avanzan
+            for d in range(min(ciclo + 1, 3)):
+                _dot(dot_x + d * 10, dot_y)
+            display.show()
+            time.sleep_ms(280)
 
-        dot_y = EYE_Y + EYE_H + 6
-        dot_x = CX - 8
-        gap = 8
-        if i >= 1: draw_dot(dot_x,       dot_y)
-        if i >= 2: draw_dot(dot_x+gap,   dot_y)
-        if i >= 3: draw_dot(dot_x+gap*2, dot_y)
+    # Guiño rápido al final como "ya casi"
+    display.fill(0)
+    _ojo_feliz(EYE_L_X, EYE_Y)
+    _ojo_dormido(EYE_R_X, EYE_Y + EYE_H // 2)
+    display.show()
+    time.sleep_ms(200)
 
-        display.show()
-        time.sleep(0.35)
 
 def mostrar_hablando():
-    """Ojos muy felices ^^ con cejas altas y boca animada."""
-    for i in range(6):
+    """Ojos felices ^^ con boca animada y ondas de sonido."""
+    _transicion()
+    boca_y = EYE_Y + EYE_H + 3
+    boca_cx = CX
+
+    for i in range(10):
         display.fill(0)
-        
-        # Cejas altas y felices
-        draw_ceja(EYE_L_X, EYE_Y - 6, EYE_W, -1)
-        draw_ceja(EYE_R_X, EYE_Y - 6, EYE_W, 1)
+        _ojo_feliz(EYE_L_X, EYE_Y)
+        _ojo_feliz(EYE_R_X, EYE_Y)
+        _boca(boca_cx, boca_y, i % 2)
 
-        draw_ojo_feliz(EYE_L_X, EYE_Y, EYE_W, EYE_H)
-        draw_ojo_feliz(EYE_R_X, EYE_Y, EYE_W, EYE_H)
-
-        # Boca animada redonda
-        boca_y = EYE_Y + EYE_H + 2
-        boca_x = CX - 6
-        if i % 2 == 0:
-            draw_rect_redondeado(boca_x, boca_y, 12, 4, 1) # cerrada
-        else:
-            draw_rect_redondeado(boca_x - 2, boca_y, 16, 10, 1) # abierta (sonora)
-
+        # Ondas de sonido a la derecha
         if i % 2 == 1:
             sx = EYE_R_X + EYE_W + 3
-            sy = EYE_Y + 4
-            display.line(sx,   sy,   sx+4, sy-4, 1)
-            display.line(sx,   sy+6, sx+4, sy+10, 1)
-            if i >= 3:
-                display.line(sx+6, sy-2, sx+10, sy-7, 1)
-                display.line(sx+6, sy+8, sx+10, sy+13, 1)
+            sy = EYE_Y + 6
+            display.line(sx,     sy,     sx + 4, sy - 4, 1)
+            display.line(sx,     sy + 6, sx + 4, sy + 10, 1)
+            if i >= 4:
+                display.line(sx + 6,  sy - 2,  sx + 10, sy - 7, 1)
+                display.line(sx + 6,  sy + 8,  sx + 10, sy + 13, 1)
 
         display.show()
-        time.sleep(0.18)
+        time.sleep_ms(160)
+
 
 def mostrar_triste():
-    """Para errores."""
+    """Ojos caídos — para errores."""
+    _transicion()
     display.fill(0)
-    draw_ceja(EYE_L_X, EYE_Y - 2, EYE_W, 1)
-    draw_ceja(EYE_R_X, EYE_Y - 2, EYE_W, -1)
-    draw_ojo_triste(EYE_L_X, EYE_Y, EYE_W, EYE_H)
-    draw_ojo_triste(EYE_R_X, EYE_Y, EYE_W, EYE_H)
+    _ojo_triste(EYE_L_X, EYE_Y)
+    _ojo_triste(EYE_R_X, EYE_Y)
     display.show()
-
-def parpadear_una_vez():
-    display.fill_rect(EYE_L_X, EYE_Y - 8, EYE_W, EYE_H + 8, 0)
-    display.fill_rect(EYE_R_X, EYE_Y - 8, EYE_W, EYE_H + 8, 0)
-    draw_ojo_parpadeo(EYE_L_X, EYE_Y + EYE_H//2 - 1, EYE_W)
-    draw_ojo_parpadeo(EYE_R_X, EYE_Y + EYE_H//2 - 1, EYE_W)
-    display.show()
-    time.sleep(0.08)
