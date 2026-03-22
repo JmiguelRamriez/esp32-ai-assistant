@@ -150,6 +150,33 @@ def hablar():
         print("Error en ruta /hablar:", e)
         return jsonify({"error": str(e)}), 500
 
+@app.route('/despertar', methods=['POST'])
+def despertar():
+    audio = request.data
+    with open('temp_wake.wav', 'wb') as f:
+        f.write(audio)
+        
+    with open('temp_wake.wav', 'rb') as f:
+        resp = requests.post(
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+            headers={"Authorization": "Bearer " + API_KEY},
+            files={"file": ("audio.wav", f, "audio/wav")},
+            data={"model": "whisper-large-v3-turbo"}
+        )
+        
+    # Todo esto va alineado a la misma altura que el bloque "with"
+    texto = resp.json().get('text', '').lower()
+    print(f"--> Transcripción bruta de Wake Word: '{texto}'") 
+    
+    # Tolerancia a errores comunes de Whisper con la palabra "Luna"
+    posibles_coincidencias = ['luna', 'una', 'duna', 'bruna']
+    detectado = any(palabra in texto for palabra in posibles_coincidencias)
+    
+    print(f"Wake word check: '{texto}' → {detectado}")
+    return jsonify({"detectado": detectado})
+
+
+
 @app.route('/reset', methods=['POST'])
 def reset():
     global historial
