@@ -1,5 +1,5 @@
 
-(footprint LCD_OLED_128X64_1.3_I2C (layer F.Cu) (tedit 69B753B5)
+(footprint LCD_OLED_128X64_1.3_I2C (layer F.Cu) (tedit 69BF60F5)
   (descr "")
   (fp_text reference REF** (at -14.575 -17.885 0) (layer F.SilkS)
     (effects (font (size 1.0 1.0) (thickness 0.15)))
