@@ -276,3 +276,11 @@ def mostrar_triste():
     _ojo_triste(EYE_L_X, EYE_Y)
     _ojo_triste(EYE_R_X, EYE_Y)
     display.show()
+
+def mostrar_error_servidor():
+    """Muestra error de conexión/timeout temporalmente y regresa a reposo."""
+    mostrar_triste()
+    display.text("Servidor OFF", 20, 0, 1)
+    display.show()
+    time.sleep(2)
+    mostrar_reposo()

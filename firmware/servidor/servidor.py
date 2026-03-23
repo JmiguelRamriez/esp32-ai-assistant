@@ -133,8 +133,13 @@ def hablar():
         tts.write_to_fp(mp3_fp)
         mp3_fp.seek(0)
         
-        # 3. Convertir con pydub a WAV (8kHz, Mono, 8-bits unsigned)
+        # 3. Convertir con pydub a WAV, normalizar y empaquetar
         audio = AudioSegment.from_file(mp3_fp, format="mp3")
+        
+        # Pydub: Normalizar el volumen para que Luna siempre suene al maximo
+        from pydub.effects import normalize
+        audio = normalize(audio)
+        
         # 8000 Hz, 1 canal (Mono), 1 byte (8 bits)
         audio = audio.set_frame_rate(8000).set_channels(1).set_sample_width(1) 
         

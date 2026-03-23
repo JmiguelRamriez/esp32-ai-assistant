@@ -30,4 +30,14 @@ def conectar():
     if wlan.isconnected():
         print("¡Conectado exitosamente! IP:", wlan.ifconfig()[0])
     else:
-        print("Falló la conexión. Revisa que el nombre y contraseña de tu red de casa sean correctos.")
+        print("Falló la conexión. Revisa que el nombre y contraseña de tu red de casa sean correctos.")
+
+def verificar_y_reconectar():
+    """Comprueba si el WiFi sigue conectado y reconecta si no."""
+    wlan = network.WLAN(network.STA_IF)
+    if not wlan.isconnected():
+        print("WiFi desconectado. Intentando reconectar...")
+        conectar()
+        if wlan.isconnected():
+            import pantalla
+            pantalla.sincronizar_hora()
