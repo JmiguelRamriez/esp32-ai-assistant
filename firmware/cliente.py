@@ -8,13 +8,6 @@ import os
 import gc
 import pantalla
 import time
-from machine import WDT
-
-def feed_wdt():
-    try:
-        WDT(timeout=60000).feed()
-    except:
-        pass
 
 def escuchar_y_preguntar_wake():
     import grabar as _grabar
@@ -32,12 +25,11 @@ def escuchar_y_preguntar_wake():
     texto = ""
 
     for intento in range(2):
-        feed_wdt()
         try:
             tam = os.stat("audio.wav")[6]
             addr = usocket.getaddrinfo(dominio, config.PUERTO, 0, usocket.SOCK_STREAM)[0][-1]
             sock = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-            sock.settimeout(10.0)
+            sock.settimeout(20.0)
             sock.connect(addr)
             if config.PUERTO == 443:
                 sock = ssl.wrap_socket(sock, server_hostname=dominio)
@@ -54,7 +46,6 @@ def escuchar_y_preguntar_wake():
             with open("audio.wav", "rb") as f:
                 buf = bytearray(1024)
                 while True:
-                    feed_wdt()
                     n = f.readinto(buf)
                     if n == 0: break
                     escrito = 0
@@ -65,7 +56,6 @@ def escuchar_y_preguntar_wake():
 
             respuesta_bytes = b""
             while True:
-                feed_wdt()
                 try:
                     chunk = sock.read(512)
                     if not chunk: break
@@ -103,12 +93,11 @@ def escuchar_y_preguntar(boton):
     texto = ""
 
     for intento in range(2):
-        feed_wdt()
         try:
             tam = os.stat("audio.wav")[6]
             addr = usocket.getaddrinfo(dominio, config.PUERTO, 0, usocket.SOCK_STREAM)[0][-1]
             sock = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-            sock.settimeout(10.0) 
+            sock.settimeout(20.0) 
             sock.connect(addr)
             if config.PUERTO == 443:
                 sock = ssl.wrap_socket(sock, server_hostname=dominio)
@@ -125,7 +114,6 @@ def escuchar_y_preguntar(boton):
             with open("audio.wav", "rb") as f:
                 buf = bytearray(1024)
                 while True:
-                    feed_wdt()
                     n = f.readinto(buf)
                     if n == 0: break
                     chunk = buf[:n]
@@ -136,7 +124,6 @@ def escuchar_y_preguntar(boton):
                             
             respuesta_bytes = b""
             while True:
-                feed_wdt()
                 try:
                     chunk = sock.read(512)
                     if not chunk: break
@@ -181,11 +168,10 @@ def preguntar(texto):
     texto_limpio = texto_limpio.strip()
 
     for intento in range(2):
-        feed_wdt()
         try:
             url = "https://" + config.SERVIDOR.strip() + "/preguntar"
             body = ujson.dumps({"texto": texto_limpio}).encode('utf-8')
-            resp = urequests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=10.0)
+            resp = urequests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=20.0)
             datos = resp.json()
             resp.close()
             return datos['choices'][0]['message']['content']
@@ -207,16 +193,14 @@ def hablar(texto):
         texto_limpio = texto_limpio.replace(original, nuevo)
 
     for intento in range(2):
-        feed_wdt()
         try:
             url = "https://" + config.SERVIDOR.strip() + "/hablar"
             body = ujson.dumps({"texto": texto_limpio}).encode('utf-8')
             print("Descargando audio de respuesta...")
-            resp = urequests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=10.0)
+            resp = urequests.post(url, data=body, headers={"Content-Type": "application/json"}, timeout=20.0)
             
             with open("respuesta.wav", "wb") as f:
                 while True:
-                    feed_wdt()
                     try:
                         chunk = resp.raw.read(1024)
                         if not chunk: break

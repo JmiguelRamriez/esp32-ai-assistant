@@ -120,11 +120,20 @@ def grabar_wake_con_vad(nombre="wake.wav", umbral=1500, duracion_ms=2500, timeou
     mic = _get_mic()
     buf = bytearray(512)
 
+    # Ring buffer pre-roll para no cortar la primera sílaba (guardamos los últimos ~250ms)
+    # 8 buffers de 512 bytes = 4096 bytes = ~256ms a 8kHz 16-bit
+    pre_roll = [bytearray(512) for _ in range(8)]
+    pre_roll_idx = 0
+
     # Intentar detectar voz durante el timeout
     intentos = timeout_ms // 10
     voz_detectada = False
     for _ in range(intentos):
         mic.readinto(buf)
+        # Guardar copia en el pre-roll
+        pre_roll[pre_roll_idx][:] = buf
+        pre_roll_idx = (pre_roll_idx + 1) % len(pre_roll)
+
         maximo = 0
         for i in range(0, len(buf) - 1, 2):
             val = buf[i] | (buf[i + 1] << 8)
@@ -137,12 +146,16 @@ def grabar_wake_con_vad(nombre="wake.wav", umbral=1500, duracion_ms=2500, timeou
     if not voz_detectada:
         return False
 
-    # Voz detectada — grabar incluyendo el chunk actual
+    # Voz detectada — grabar incluyendo el pre-roll histórico
     with open(nombre, 'wb') as f:
         f.write(bytearray(44))
         grabado = 0
-        f.write(buf)
-        grabado += len(buf)
+        
+        # Escribir el pre_roll en orden cronológico
+        for i in range(len(pre_roll)):
+            idx = (pre_roll_idx + i) % len(pre_roll)
+            f.write(pre_roll[idx])
+            grabado += len(pre_roll[idx])
 
         buf2 = bytearray(1024)
         while grabado < objetivo:

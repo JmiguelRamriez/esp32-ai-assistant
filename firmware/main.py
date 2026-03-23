@@ -8,13 +8,11 @@ import usocket
 import ssl
 import ujson
 import config
-from machine import Pin, WDT, DAC
+from machine import Pin, DAC
 import time
 
-wdt = WDT(timeout=60000)
 
 time.sleep(2)
-wdt.feed()
 wifi.conectar()
 pantalla.iniciar()
 pantalla.sincronizar_hora()
@@ -37,18 +35,19 @@ def beep_confirmacion():
             time.sleep_us(568)
             dac.write(0)
             time.sleep_us(568)
+        # IMPORTANTE: Liberar el DAC escribiendo 0 para no causar ruido estático continuo
+        dac.write(0)
     except Exception as e:
         print("Error DAC:", e)
 
 
 def verificar_wake_word():
-    wdt.feed()
     try:
         tam = os.stat("wake.wav")[6]
         dominio = config.SERVIDOR.strip()
         addr = usocket.getaddrinfo(dominio, config.PUERTO, 0, usocket.SOCK_STREAM)[0][-1]
         sock = usocket.socket(usocket.AF_INET, usocket.SOCK_STREAM)
-        sock.settimeout(10.0)
+        sock.settimeout(20.0)
         sock.connect(addr)
         if config.PUERTO == 443:
             sock = ssl.wrap_socket(sock, server_hostname=dominio)
@@ -65,15 +64,19 @@ def verificar_wake_word():
         with open("wake.wav", "rb") as f:
             buf = bytearray(1024)
             while True:
-                wdt.feed()
                 n = f.readinto(buf)
                 if n == 0:
                     break
-                sock.write(buf[:n])
+                
+                chunk = buf[:n]
+                escrito = 0
+                while escrito < n:
+                    res = sock.write(chunk[escrito:])
+                    if res:
+                        escrito += res
 
         resp = b""
         while True:
-            wdt.feed()
             chunk = sock.read(512)
             if not chunk:
                 break
@@ -92,7 +95,6 @@ def verificar_wake_word():
 
 def interactuar(modo_wake=False):
     global _ultimo_habla
-    wdt.feed()
     if modo_wake:
         beep_confirmacion()
         
@@ -116,7 +118,6 @@ def interactuar(modo_wake=False):
 
 
 while True:
-    wdt.feed()
     
     # Prioridad 1: boton fisico
     if boton.value() == 0:
@@ -129,7 +130,7 @@ while True:
             
     # Prioridad 2: wake word (si han pasado 4 segs desde la ultima vez que hablo)
     elif time.time() - _ultimo_habla > 4:
-        if grabar.grabar_wake_con_vad("wake.wav", umbral=300, duracion_ms=2500, timeout_ms=3000):
+        if grabar.grabar_wake_con_vad("wake.wav", umbral=1200, duracion_ms=2500, timeout_ms=3000):
             gc.collect()
             if verificar_wake_word():
                 print("¡Wake word 'Luna' detectado!")

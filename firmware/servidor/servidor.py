@@ -166,18 +166,24 @@ def despertar():
             "https://api.groq.com/openai/v1/audio/transcriptions",
             headers={"Authorization": "Bearer " + API_KEY},
             files={"file": ("audio.wav", f, "audio/wav")},
-            data={"model": "whisper-large-v3-turbo"}
+            data={
+                "model": "whisper-large-v3-turbo",
+                "prompt": "Luna, una, duna. Luna.",
+                "language": "es"
+            }
         )
         
     # Todo esto va alineado a la misma altura que el bloque "with"
     texto = resp.json().get('text', '').lower()
     print(f"--> Transcripción bruta de Wake Word: '{texto}'") 
     
-    # Tolerancia a errores comunes de Whisper con la palabra "Luna"
+    # Tolerancia a errores comunes de Whisper con la palabra "Luna" además de la puntuación
     posibles_coincidencias = ['luna', 'una', 'duna', 'bruna']
-    detectado = any(palabra in texto for palabra in posibles_coincidencias)
+    # Eliminar signos de puntuación comunes que Whisper puede agregar
+    texto_limpio = texto.replace('.', '').replace(',', '').replace('!', '').replace('?', '').strip()
+    detectado = any(palabra in texto_limpio.split() or palabra == texto_limpio for palabra in posibles_coincidencias)
     
-    print(f"Wake word check: '{texto}' → {detectado}")
+    print(f"Wake word check: '{texto}' → '{texto_limpio}' → {detectado}")
     return jsonify({"detectado": detectado})
 
 
