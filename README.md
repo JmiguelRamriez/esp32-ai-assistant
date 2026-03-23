@@ -14,9 +14,9 @@ El proyecto está dividido en dos grandes bloques:
    - Reproduce el audio de retorno en formato WAV (8-bits PCM Unsigned) usando los pines **DAC**.
 
 2. **Servidor Backend (Flask + Groq)**:
-   - Recibe el audio WAV y lo transcribe a texto usando el modelo Whisper de la API de Groq (`/transcribir`).
+   - Recibe el audio WAV y lo transcribe a texto usando el modelo Whisper de la API de Groq (`/transcribir` y `/despertar` para el Wake Word).
    - Envía el texto a un LLM (Llama-3.1 alojado en Groq) con un prompt especial para generar una respuesta (`/preguntar`).
-   - Mantiene el historial de la conversación en un archivo `.json` para brindar contexto.
+   - Mantiene el historial de la conversación en un archivo `.json` para brindar contexto (y permite borrarlo vía `/reset`).
    - Convierte el texto de respuesta en una voz y lo optimiza usando gTTS y PyDub, enviando un WAV compatible de regreso (`/hablar`).
 
 ---
@@ -87,9 +87,11 @@ El servidor puede correr en tu computadora, en una Raspberry Pi o en plataformas
 ## Guía de Uso
 
 1. **Encendido:** Conecta el ESP32 a la corriente. Verás la pantalla OLED encender en "Modo reposo" (carita durmiendo: `(-_-)` Zzz).
-2. **Inicia Interacción:** Mantén presionado el botón conectado al Pin 14.
-3. **Habla al Micrófono:** La pantalla mostrará que está sorprendida y atenta escuchando las ondas de voz.
-4. **Espera:** Suelta el botón. La cara cambiará a "pensando". El audio se sube al servidor, se transcribe y la IA genera un texto que luego se descarga en voz.
+2. **Inicia Interacción:** Tienes dos formas de interactuar con el asistente:
+   - **Por Botón:** Mantén presionado el botón conectado al Pin 14.
+   - **Por Wake Word:** Di la palabra **"Luna"** cerca del micrófono. El asistente detectará tu voz automáticamente.
+3. **Habla al Micrófono:** La pantalla mostrará que está sorprendida y atenta escuchando las ondas de voz. 
+4. **Espera:** Suelta el botón (o termina de hablar). La cara cambiará a "pensando". El audio se sube al servidor, se transcribe y la IA genera un texto que luego se descarga en voz.
 5. **Respuesta Automática:** La cara cambiará a modo "¿Feliz?" o hablando, se moverá la boca simulada, y el altavoz reproducirá tu respuesta.
 
 ---
@@ -108,7 +110,7 @@ Asistente/
 │   ├── sh1106.py         # Librería del controlador de la pantalla I2C.
 │   ├── wifi.py           # Script para manejar la conexión e inicialización WiFi.
 │   └── servidor/
-│       ├── servidor.py   # API Backend de Flask. Expone /transcribir, /preguntar y /hablar.
+│       ├── servidor.py   # API Backend de Flask. Expone /transcribir, /preguntar, /hablar, /despertar y /reset.
 │       └── requirements.txt # Dependencias pip para el servidor Python.
 └── hardware/
     └── Asistente.kicad_pro y pcbs # Archivos en KiCad de la placa electrónica impresa.
