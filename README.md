@@ -90,7 +90,7 @@ El servidor puede correr en tu computadora, en una Raspberry Pi o en plataformas
 2. **Inicia Interacción:** Tienes dos formas de interactuar con el asistente:
    - **Por Botón:** Mantén presionado el botón conectado al Pin 14.
    - **Por Wake Word:** Di la palabra **"Luna"** cerca del micrófono. El asistente detectará tu voz automáticamente.
-3. **Habla al Micrófono:** La pantalla mostrará que está sorprendida y atenta escuchando las ondas de voz. 
+3. **Habla al Micrófono:** La pantalla mostrará que está sorprendida y atenta escuchando las ondas de voz.
 4. **Espera:** Suelta el botón (o termina de hablar). La cara cambiará a "pensando". El audio se sube al servidor, se transcribe y la IA genera un texto que luego se descarga en voz.
 5. **Respuesta Automática:** La cara cambiará a modo "¿Feliz?" o hablando, se moverá la boca simulada, y el altavoz reproducirá tu respuesta.
 
@@ -106,7 +106,7 @@ Asistente/
 │   ├── cliente.py        # Funciones que arman los requests e interactúan con el backend.
 │   ├── grabar.py         # Configuración y grabación de audio con I2S (I2S.MONO).
 │   ├── reproductor.py    # Manejo de la salida de audio PCM 8-Bit usando Pines DAC internos.
-│   ├── pantalla.py       # Primitivas gráficas para la UI / Caritas EMO de la pantalla OLED SH1106.
+│   ├── pantalla.py       # Primitivas gráficas para la UI.
 │   ├── sh1106.py         # Librería del controlador de la pantalla I2C.
 │   ├── wifi.py           # Script para manejar la conexión e inicialización WiFi.
 │   └── servidor/
