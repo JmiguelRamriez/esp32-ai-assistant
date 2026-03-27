@@ -1,0 +1,12 @@
+Plotted to 'C:\Users\josem\OneDrive\Escritorio\Asistente\hardware\Gerber\Asistente-F_Cu.gbr'.
+Plotted to 'C:\Users\josem\OneDrive\Escritorio\Asistente\hardware\Gerber\Asistente-B_Cu.gbr'.
+Plotted to 'C:\Users\josem\OneDrive\Escritorio\Asistente\hardware\Gerber\Asistente-F_Paste.gbr'.
+Plotted to 'C:\Users\josem\OneDrive\Escritorio\Asistente\hardware\Gerber\Asistente-B_Paste.gbr'.
+Plotted to 'C:\Users\josem\OneDrive\Escritorio\Asistente\hardware\Gerber\Asistente-F_Silkscreen.gbr'.
+Plotted to 'C:\Users\josem\OneDrive\Escritorio\Asistente\hardware\Gerber\Asistente-B_Silkscreen.gbr'.
+Plotted to 'C:\Users\josem\OneDrive\Escritorio\Asistente\hardware\Gerber\Asistente-F_Mask.gbr'.
+Plotted to 'C:\Users\josem\OneDrive\Escritorio\Asistente\hardware\Gerber\Asistente-B_Mask.gbr'.
+Plotted to 'C:\Users\josem\OneDrive\Escritorio\Asistente\hardware\Gerber\Asistente-Edge_Cuts.gbr'.
+Created Gerber job file 'C:\Users\josem\OneDrive\Escritorio\Asistente\hardware\Gerber\Asistente-job.gbrjob'.
+Info: Done.
+Info: Done.
