@@ -3719,7 +3719,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal"
 			(at 103.378 82.55 90)
 			(effects
 				(font
@@ -3888,7 +3888,7 @@
 			(uuid "718a9b8a-e59d-4358-a364-a88d69c9b9d4")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "J1")
 					(unit 1)
@@ -3958,7 +3958,7 @@
 			(uuid "8e9ed8b6-2220-40dd-9034-1f920ded83ac")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "LS2")
 					(unit 1)
@@ -4089,10 +4089,10 @@
 			)
 		)
 		(pin "1"
-			(uuid "718a9b8a-e59d-4358-a364-a88d69c9b9d4")
+			(uuid "718a9b8a-e59d-4358-a364-a88d69c9b9d5")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "J2")
 					(unit 1)
@@ -4224,7 +4224,7 @@
 			(uuid "d16d2204-d42f-4c2d-a127-4c78964654c6")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "GNDMIC1")
 					(unit 1)
@@ -4260,7 +4260,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm"
 			(at 96.52 72.39 0)
 			(effects
 				(font
@@ -4294,7 +4294,7 @@
 			(uuid "249bb41b-dd2f-45b8-aafb-c46bb084ed25")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "C3")
 					(unit 1)
@@ -4465,7 +4465,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal"
 			(at 98.298 82.55 90)
 			(effects
 				(font
@@ -4563,10 +4563,10 @@
 			)
 		)
 		(pin "1"
-			(uuid "718a9b8a-e59d-4358-a364-a88d69c9b9d4")
+			(uuid "718a9b8a-e59d-4358-a364-a88d69c9b9d6")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "J3")
 					(unit 1)
@@ -4644,7 +4644,7 @@
 			(uuid "5ff87e40-6f30-4990-ac20-7391d803d95b")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "C1")
 					(unit 1)
@@ -4799,7 +4799,7 @@
 			(uuid "e85c6c0a-8a5d-4e0a-849b-9d2c707c3450")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "U2")
 					(unit 1)
@@ -4835,7 +4835,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm"
 			(at 101.6 72.39 0)
 			(effects
 				(font
@@ -4869,7 +4869,7 @@
 			(uuid "249bb41b-dd2f-45b8-aafb-c46bb084ed26")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "C2")
 					(unit 1)
@@ -5005,7 +5005,7 @@
 			(uuid "8e9ed8b6-2220-40dd-9034-1f920ded83ad")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "LS1")
 					(unit 1)
@@ -5192,7 +5192,7 @@
 			(uuid "6a42277e-f5cb-4e44-89ec-0a0c0d1472bb")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "DS1")
 					(unit 1)
@@ -5390,7 +5390,7 @@
 			(uuid "0d98109e-2408-4c36-80b1-3780b235720e")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "#PWR02")
 					(unit 1)
@@ -5544,7 +5544,7 @@
 			(uuid "1a31601a-fa88-4b9c-a0b9-f0d1ca931efa")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "U1")
 					(unit 1)
@@ -5807,10 +5807,10 @@
 			)
 		)
 		(pin "1"
-			(uuid "718a9b8a-e59d-4358-a364-a88d69c9b9d4")
+			(uuid "718a9b8a-e59d-4358-a364-a88d69c9b9d7")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "J4")
 					(unit 1)
@@ -5943,7 +5943,7 @@
 			(uuid "908ba640-4791-4334-ad17-5704a2a7f528")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "#PWR01")
 					(unit 1)
@@ -6024,7 +6024,7 @@
 			(uuid "2aec4119-dbd6-4305-b723-53953811b4b8")
 		)
 		(instances
-			(project ""
+			(project "Asistente"
 				(path "/97dc264d-c8ec-4099-a14f-39f91d52d718"
 					(reference "INMP441")
 					(unit 1)

@@ -1,0 +1,7 @@
+﻿Designator,Quantity,Value,Footprint,Package,MPN,DNP,Mount_Type,Description,Field5
+C1,1,1000uF,CP_Radial_D10.0mm_P5.00mm,,,,tht,Polarized capacitor,16V 
+"C2, C3",2,100nf,C_Disc_D5.0mm_W2.5mm_P5.00mm,,,,tht,"capacitor, US symbol",
+"GND, GNDMIC1, L+, L-, R+, R-, SCK, SCK, SD, SDA, VDD, VDD, WS",13,Conn_01x01_Pin,PinHeader_1x01_P2.54mm_Vertical,,,,tht,"Generic connector, single row, 01x01, script generated",
+"R3, R4",2,1k,R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,,,,tht,Resistor,
+U1,1,~,ESP32_30pin,,,,tht,,
+U2,1,pam8403,pam8403,,,,tht,,
